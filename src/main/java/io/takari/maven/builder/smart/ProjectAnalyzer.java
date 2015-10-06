@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,8 +16,18 @@ import java.util.Map;
 public class ProjectAnalyzer {
     private final static Logger logger = LoggerFactory.getLogger(ProjectAnalyzer.class);
 
+    private static Comparator<Node> SERVICE_TIME_COMPARATOR = new Comparator<Node>() {
+        @Override
+        public int compare(Node o1, Node o2) {
+            return (int) (o1.serviceTime - o2.serviceTime);
+        }
+    };
+
     public static void analyze(MavenSession session) {
-        List<Node> roots = buildGraph(session);
+        Map<String, Long> historicalServiceTimes = ProjectComparator.readServiceTimes(session);
+        long defaultServiceTime = ProjectComparator.average(historicalServiceTimes.values());
+
+        List<Node> roots = buildGraph(session, historicalServiceTimes, defaultServiceTime);
 
         List<Node> criticalPath = new ArrayList<>();
         for (Node root : roots) {
@@ -25,18 +37,25 @@ public class ProjectAnalyzer {
         }
 
         logger.info("Project count: " + session.getProjectDependencyGraph().getSortedProjects().size());
+        logger.info("Average build time: " + defaultServiceTime);
         logger.info("Critical path:");
         for (Node node : criticalPath) {
             logger.info("  " + node.project + " " + node.serviceTime + "ms");
         }
         logger.info("Length of critical path: " + criticalPath.size());
         logger.info("Total time on critical path: " + getServiceTime(criticalPath) + "ms");
+        logger.info("Modules on critical path with build time twice above average:");
+        Collections.sort(criticalPath, SERVICE_TIME_COMPARATOR);
+        for (Node node : criticalPath) {
+            if (node.serviceTime > 2 * defaultServiceTime) {
+                logger.info("  " + node.project + " " + node.serviceTime + "ms");
+            }
+        }
     }
 
-    private static List<Node> buildGraph(MavenSession session) {
+    private static List<Node> buildGraph(MavenSession session,
+                                         Map<String, Long> historicalServiceTimes, long defaultServiceTime) {
         ProjectDependencyGraph dependencyGraph = session.getProjectDependencyGraph();
-        Map<String, Long> historicalServiceTimes = ProjectComparator.readServiceTimes(session);
-        long defaultServiceTime = ProjectComparator.average(historicalServiceTimes.values());
 
         Map<MavenProject, Node> nodes = new HashMap<>();
         List<Node> roots = new ArrayList<>();
