@@ -136,6 +136,8 @@ class SmartBuilderImpl {
     }
     this.progressReporter = progressReporter;
 
+    ProjectAnalyzer.analyze(session);
+
     final Comparator<MavenProject> projectComparator = ProjectComparator.create(session);
 
     this.reactorBuildQueue = new ReactorBuildQueue(session.getProjectDependencyGraph());

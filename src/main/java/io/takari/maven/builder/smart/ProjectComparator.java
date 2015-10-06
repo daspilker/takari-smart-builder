@@ -70,7 +70,7 @@ class ProjectComparator {
     };
   }
 
-  private static long average(Collection<Long> values) {
+  static long average(Collection<Long> values) {
     long count = 0, sum = 0;
     for (Long value : values) {
       if (value != null) {
@@ -97,7 +97,7 @@ class ProjectComparator {
     }
   }
 
-  private static Long getServiceTime(Map<String, Long> serviceTimes, MavenProject project,
+  static Long getServiceTime(Map<String, Long> serviceTimes, MavenProject project,
       long defaultServiceTime) {
     Long serviceTime = serviceTimes.get(id(project));
     return serviceTime != null ? serviceTime.longValue() : defaultServiceTime;
@@ -132,7 +132,7 @@ class ProjectComparator {
     return weight;
   }
 
-  private static Map<String, Long> readServiceTimes(MavenSession session) {
+  static Map<String, Long> readServiceTimes(MavenSession session) {
     Map<String, Long> result = new HashMap<>();
     final File timingFile = getTimingFile(session);
     Properties properties = new Properties();
